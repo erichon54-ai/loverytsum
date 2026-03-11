@@ -30,6 +30,53 @@ const CHARACTER_TYPES = [
   { id: "tsuvry", label: "Tsuvry", accent: "#1563d8", src: "./assets/characters/tsuvry.png" },
 ];
 
+const HIGH_SCORE_STORAGE_KEY = "loveryTsumHighScores";
+
+class PersonalRankingStore {
+  // Ranking storage is kept separate from gameplay so replay/reset logic stays simple.
+  loadScores() {
+    try {
+      const raw = window.localStorage.getItem(HIGH_SCORE_STORAGE_KEY);
+      const parsed = raw ? JSON.parse(raw) : [];
+      if (!Array.isArray(parsed)) {
+        return [];
+      }
+
+      return parsed
+        .filter((value) => Number.isFinite(value) && value >= 0)
+        .map((value) => Math.floor(value))
+        .sort((a, b) => b - a)
+        .slice(0, 3);
+    } catch {
+      return [];
+    }
+  }
+
+  saveScores(scores) {
+    const sanitized = scores
+      .filter((value) => Number.isFinite(value) && value >= 0)
+      .map((value) => Math.floor(value))
+      .sort((a, b) => b - a)
+      .slice(0, 3);
+
+    window.localStorage.setItem(HIGH_SCORE_STORAGE_KEY, JSON.stringify(sanitized));
+    return sanitized;
+  }
+
+  updateTop3(finalScore) {
+    if (!Number.isFinite(finalScore) || finalScore < 0) {
+      return this.loadScores();
+    }
+
+    return this.saveScores([...this.loadScores(), Math.floor(finalScore)]);
+  }
+
+  clearScores() {
+    window.localStorage.removeItem(HIGH_SCORE_STORAGE_KEY);
+    return [];
+  }
+}
+
 class SoundHooks {
   constructor() {
     this.context = null;
@@ -198,11 +245,14 @@ class TsumGame {
     this.scoreElement = document.getElementById("score");
     this.timerElement = document.getElementById("timer");
     this.finalScoreElement = document.getElementById("finalScore");
+    this.rankingList = document.getElementById("rankingList");
     this.startButton = document.getElementById("startButton");
     this.heartBoosterIcon = document.getElementById("heartBoosterIcon");
     this.overlayRestartButton = document.getElementById("overlayRestartButton");
+    this.clearRankingButton = document.getElementById("clearRankingButton");
     this.gameOverOverlay = document.getElementById("gameOverOverlay");
     this.audio = new SoundHooks();
+    this.rankingStore = new PersonalRankingStore();
     this.imageLoaded = false;
     this.resizeObserver = null;
     this.animationLock = false;
@@ -271,6 +321,11 @@ class TsumGame {
       this.restartGame();
     });
 
+    this.clearRankingButton.addEventListener("click", () => {
+      const clearedScores = this.rankingStore.clearScores();
+      this.renderRanking(clearedScores);
+    });
+
     this.boardElement.addEventListener("pointerdown", (event) => {
       this.audio.unlock();
       this.handlePointerDown(event);
@@ -324,6 +379,7 @@ class TsumGame {
     this.scoreElement.textContent = "0";
     this.timerElement.textContent = String(CONFIG.roundTime);
     this.finalScoreElement.textContent = "0";
+    this.renderRanking();
     this.toggleStartOverlay(true);
     this.toggleOverlay(false);
     this.drawTrail();
@@ -589,7 +645,9 @@ class TsumGame {
     this.startButton.disabled = false;
     this.toggleStartOverlay(false);
     this.clearTemporaryBoosterEffect();
+    const highScores = this.rankingStore.updateTop3(this.score);
     this.finalScoreElement.textContent = this.score.toLocaleString("ja-JP");
+    this.renderRanking(highScores);
     this.toggleOverlay(true);
     this.setBoardMessage("", false);
     return;
@@ -615,6 +673,39 @@ class TsumGame {
   updateScore(delta) {
     this.score += delta;
     this.scoreElement.textContent = this.score.toLocaleString("ja-JP");
+  }
+
+  renderRanking(scores = this.rankingStore.loadScores()) {
+    if (!this.rankingList) {
+      return;
+    }
+
+    const labels = ["1st", "2nd", "3rd"];
+    this.rankingList.innerHTML = "";
+
+    if (!scores.length) {
+      const emptyState = document.createElement("li");
+      emptyState.className = "ranking-empty";
+      emptyState.textContent = "No scores yet";
+      this.rankingList.appendChild(emptyState);
+      return;
+    }
+
+    labels.forEach((label, index) => {
+      const item = document.createElement("li");
+      item.className = "ranking-item";
+
+      const rank = document.createElement("span");
+      rank.className = "ranking-label";
+      rank.textContent = `${label}:`;
+
+      const value = document.createElement("strong");
+      value.className = "ranking-value";
+      value.textContent = scores[index] !== undefined ? scores[index].toLocaleString("ja-JP") : "---";
+
+      item.append(rank, value);
+      this.rankingList.appendChild(item);
+    });
   }
 
   handlePointerDown(event) {

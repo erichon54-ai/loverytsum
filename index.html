@@ -57,11 +57,22 @@
           </div>
 
           <div id="gameOverOverlay" class="overlay hidden" aria-hidden="true">
-            <div class="overlay-card">
+            <div class="overlay-card result-card">
               <p class="overlay-kicker">Time Up</p>
               <h2>Lovely Finish♡</h2>
               <p class="overlay-score">Final Score: <strong id="finalScore">0</strong></p>
-              <button id="overlayRestartButton" class="ui-button primary" type="button">Restart</button>
+
+              <section class="ranking-panel" aria-label="Personal High Scores">
+                <p class="ranking-title">Personal Top 3</p>
+                <ol id="rankingList" class="ranking-list">
+                  <li class="ranking-empty">No scores yet</li>
+                </ol>
+              </section>
+
+              <div class="result-actions">
+                <button id="overlayRestartButton" class="ui-button primary" type="button">Restart</button>
+                <button id="clearRankingButton" class="ui-button secondary" type="button">Clear Ranking</button>
+              </div>
             </div>
           </div>
         </div>

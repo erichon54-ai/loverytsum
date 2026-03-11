@@ -597,6 +597,69 @@ body::after {
   font-weight: 800;
 }
 
+.result-card {
+  display: grid;
+  gap: 12px;
+}
+
+.ranking-panel {
+  padding: 12px 14px;
+  border-radius: 20px;
+  background: linear-gradient(180deg, rgba(255, 248, 252, 0.98) 0%, rgba(243, 242, 255, 0.92) 100%);
+  box-shadow: inset 0 0 0 1px rgba(201, 167, 198, 0.18);
+}
+
+.ranking-title {
+  margin: 0 0 8px;
+  font-size: 0.76rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(86, 61, 89, 0.6);
+  font-weight: 800;
+}
+
+.ranking-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.ranking-item,
+.ranking-empty {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 10px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.84);
+}
+
+.ranking-label {
+  font-size: 0.92rem;
+  font-weight: 800;
+  color: rgba(86, 61, 89, 0.76);
+}
+
+.ranking-value {
+  font-family: "Arial Rounded MT Bold", "Trebuchet MS", "Segoe UI", sans-serif;
+  font-size: 1rem;
+  color: #ff6f97;
+}
+
+.ranking-empty {
+  justify-content: center;
+  color: rgba(86, 61, 89, 0.62);
+  font-weight: 700;
+}
+
+.result-actions {
+  display: grid;
+  gap: 8px;
+}
+
 @keyframes pop-out {
   0% {
     opacity: 1;
