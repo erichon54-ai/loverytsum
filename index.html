@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>LOVERYツムツム</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <main class="app-shell">
+    <section class="game-card">
+      <section class="board-panel">
+        <div class="board-frame">
+          <header class="frame-ui">
+            <div class="frame-top-row">
+              <div class="title-wrap">
+                <img class="title-logo" src="./assets/images/logo-transparent.png" alt="LOVERYツムツム" draggable="false">
+                <h1 class="sr-only">LOVERYツムツム</h1>
+              </div>
+
+              <div class="status-panel">
+                <div class="hud hud-stack">
+                  <div class="stat-pill">
+                    <span class="stat-label">SCORE</span>
+                    <strong id="score">0</strong>
+                  </div>
+                  <div class="stat-pill">
+                    <span class="stat-label">TIME</span>
+                    <strong id="timer">60</strong>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </header>
+
+          <div id="heartBoosterIcon" class="heart-booster-icon hidden" aria-hidden="true">
+            <img src="./assets/images/booster-5to4.png" alt="" draggable="false">
+          </div>
+
+          <div id="board" class="board" aria-label="ゲームボード" role="application">
+            <canvas id="trailCanvas" class="trail-canvas" aria-hidden="true"></canvas>
+            <div id="piecesLayer" class="pieces-layer"></div>
+            <div id="particleLayer" class="particle-layer" aria-hidden="true"></div>
+            <div id="floatingText" class="floating-text-layer" aria-live="polite"></div>
+            <div id="boardMessage" class="board-message hidden">
+              <p>Loading...</p>
+            </div>
+
+            <div id="startOverlay" class="start-overlay" aria-hidden="false">
+              <div class="start-card">
+                <p class="start-kicker">READY?</p>
+                <button id="startButton" class="ui-button primary start-button" type="button">Start</button>
+              </div>
+            </div>
+          </div>
+
+          <div id="gameOverOverlay" class="overlay hidden" aria-hidden="true">
+            <div class="overlay-card">
+              <p class="overlay-kicker">Time Up</p>
+              <h2>Game Over</h2>
+              <p class="overlay-score">Final Score: <strong id="finalScore">0</strong></p>
+              <button id="overlayRestartButton" class="ui-button primary" type="button">Restart</button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <script src="./script.js"></script>
+</body>
+</html>
