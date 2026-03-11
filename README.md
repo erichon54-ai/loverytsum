@@ -1,4 +1,4 @@
-# LOVERY tsum tsum
+# LOVERYツムツム
 
 GitHub Pages でそのまま公開できる静的ブラウザゲームです。
 
