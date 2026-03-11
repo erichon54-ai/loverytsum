@@ -185,6 +185,7 @@ class TsumGame {
   constructor() {
     this.boardFrame = document.querySelector(".board-frame");
     this.boardElement = document.getElementById("board");
+    this.snowLayer = document.getElementById("snowLayer");
     this.piecesLayer = document.getElementById("piecesLayer");
     this.particleLayer = document.getElementById("particleLayer");
     this.trailCanvas = document.getElementById("trailCanvas");
@@ -226,8 +227,34 @@ class TsumGame {
 
     this.bindEvents();
     this.resetUI();
+    this.setupSnowfall();
     this.setupResizeHandling();
     this.preloadCharacterImages();
+  }
+
+  setupSnowfall() {
+    if (!this.snowLayer) {
+      return;
+    }
+
+    const isCoarsePointer = window.matchMedia?.("(pointer: coarse)").matches ?? false;
+    const flakeCount = isCoarsePointer ? 18 : 28;
+    const fragment = document.createDocumentFragment();
+
+    for (let index = 0; index < flakeCount; index += 1) {
+      const flake = document.createElement("span");
+      flake.className = "snowflake";
+      flake.style.setProperty("--left", `${6 + Math.random() * 88}%`);
+      flake.style.setProperty("--size", `${2 + Math.random() * 3.4}px`);
+      flake.style.setProperty("--opacity", `${0.24 + Math.random() * 0.44}`);
+      flake.style.setProperty("--duration", `${6.6 + Math.random() * 3.8}s`);
+      flake.style.setProperty("--duration-mobile", `${6.2 + Math.random() * 2.6}s`);
+      flake.style.setProperty("--delay", `${Math.random() * -10}s`);
+      fragment.appendChild(flake);
+    }
+
+    this.snowLayer.innerHTML = "";
+    this.snowLayer.appendChild(fragment);
   }
 
   bindEvents() {
