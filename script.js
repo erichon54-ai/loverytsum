@@ -34,7 +34,7 @@ class SoundHooks {
     this.bgm = new Audio("./assets/audio/bgm.mp3");
     this.bgm.preload = "auto";
     this.bgm.loop = true;
-    this.bgm.volume = 0.08;
+    this.bgm.volume = 0.06;
     this.bgmPrepared = false;
   }
 
@@ -47,7 +47,7 @@ class SoundHooks {
     if (!this.context) {
       this.context = new AudioContextClass();
       this.masterGain = this.context.createGain();
-      this.masterGain.gain.value = 0.15;
+      this.masterGain.gain.value = 0.22;
       this.masterGain.connect(this.context.destination);
     }
 
@@ -91,16 +91,17 @@ class SoundHooks {
     }
 
     if (name === "clear") {
-      this.playTone(now, 320, 0.13, "square", 0.18, 250);
-      this.playTone(now + 0.018, 420, 0.12, "triangle", 0.14, 310);
-      this.playTone(now + 0.04, 560, 0.1, "sine", 0.1, 420);
+      this.playTone(now, 620, 0.12, "triangle", 0.18, 760);
+      this.playTone(now + 0.024, 860, 0.14, "sine", 0.16, 1120);
+      this.playTone(now + 0.052, 1180, 0.12, "sine", 0.12, 1460);
+      this.playTone(now + 0.072, 920, 0.16, "triangle", 0.08, 720);
       return;
     }
 
     if (name === "booster") {
-      this.playTone(now, 460, 0.22, "triangle", 0.11, 880);
-      this.playTone(now + 0.045, 720, 0.34, "sine", 0.1, 1680);
-      this.playTone(now + 0.1, 1020, 0.5, "triangle", 0.085, 2460);
+      this.playTone(now, 460, 0.24, "triangle", 0.18, 980);
+      this.playTone(now + 0.04, 760, 0.38, "sine", 0.16, 1820);
+      this.playTone(now + 0.11, 1080, 0.56, "triangle", 0.13, 2580);
       return;
     }
 
