@@ -735,14 +735,18 @@ class TsumGame {
     this.animationLock = true;
     const clearedPieces = [...this.selectedChain];
     const chainLength = clearedPieces.length;
-    const earned = this.calculateScore(chainLength);
+    const scoreMultiplier = this.getScoreMultiplier(chainLength, boosterWasActive);
+    const earned = this.calculateScore(chainLength, scoreMultiplier);
     const type = CHARACTER_TYPES[clearedPieces[0].typeIndex];
 
     this.audio.play("clear");
     this.flashBoard(type.accent, chainLength);
     this.popPieces(clearedPieces);
     this.spawnBursts(clearedPieces, type.accent);
-    this.showFloatingText(`${this.getFeedbackText(chainLength)} +${earned}`, type.accent);
+    this.showFloatingText(
+      `${this.getFeedbackText(chainLength)} +${earned}${this.getMultiplierLabel(scoreMultiplier)}`,
+      type.accent
+    );
 
     if (!boosterWasActive && chainLength >= 6) {
       const appliedBonusMs = this.addTimeBonus(CONFIG.timeBonusSeconds);
@@ -851,11 +855,33 @@ class TsumGame {
     this.board = nextBoard;
   }
 
-  calculateScore(chainLength) {
-    return (
+  calculateScore(chainLength, multiplier = 1) {
+    const baseScore = (
       CONFIG.basePoints * chainLength +
       Math.max(0, chainLength - CONFIG.minChain) * CONFIG.chainBonus
     );
+
+    return Math.round(baseScore * multiplier);
+  }
+
+  getScoreMultiplier(chainLength, boosterWasActive) {
+    if (chainLength >= 10) {
+      return 2;
+    }
+
+    if (boosterWasActive) {
+      return 1.3;
+    }
+
+    return 1;
+  }
+
+  getMultiplierLabel(multiplier) {
+    if (multiplier <= 1) {
+      return "";
+    }
+
+    return ` x${multiplier.toFixed(1)}`;
   }
 
   getFeedbackText(chainLength) {
