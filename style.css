@@ -799,32 +799,22 @@ body::after {
   }
 
   .board-frame.board-fever::before {
-    opacity: 0.8;
-    animation: fever-glow 1.8s ease-in-out infinite;
-    filter: none;
-    background:
-      radial-gradient(circle at 22% 24%, rgba(255, 255, 255, 0.88) 0 2px, transparent 7px),
-      radial-gradient(circle at 74% 30%, rgba(255, 236, 158, 0.84) 0 2px, transparent 8px),
-      radial-gradient(circle at 30% 68%, rgba(255, 196, 241, 0.8) 0 2px, transparent 8px),
-      radial-gradient(circle at 72% 74%, rgba(190, 235, 255, 0.84) 0 2px, transparent 8px);
-    background-size: 180px 180px, 220px 220px, 210px 210px, 230px 230px;
+    display: none;
   }
 
   .board-frame.board-fever::after {
-    opacity: 0.54;
-    animation: fever-glow 1.9s ease-in-out infinite;
-    filter: blur(6px);
+    display: none;
   }
 
   .board.board-fever {
     box-shadow:
-      inset 0 0 0 1px rgba(255, 255, 255, 0.24),
-      inset 0 0 18px rgba(255, 247, 188, 0.1),
-      0 0 18px rgba(255, 220, 132, 0.16);
+      inset 0 0 0 2px rgba(255, 244, 184, 0.52),
+      inset 0 0 16px rgba(255, 247, 188, 0.1),
+      0 0 14px rgba(255, 220, 132, 0.12);
   }
 
   .board.board-fever::before {
-    opacity: 0.72;
+    opacity: 0.62;
     animation: none;
   }
 
@@ -893,11 +883,11 @@ body::after {
 
 @media (pointer: coarse) {
   .board-frame.board-fever::before {
-    animation-duration: 2.1s;
+    display: none;
   }
 
   .board-frame.board-fever::after {
-    filter: blur(7px);
+    display: none;
   }
 
   .board.board-fever .piece {
