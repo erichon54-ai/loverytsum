@@ -3,10 +3,13 @@ const CONFIG = {
   cols: 7,
   minChain: 3,
   roundTime: 60,
+  maxRemainingTime: 90,
   basePoints: 90,
   chainBonus: 40,
   dropDelayMs: 240,
   clearDelayMs: 280,
+  feverDurationSeconds: 10,
+  timeBonusSeconds: 10,
   pieceScale: 1.06,
   visualJitterX: 0.06,
   visualJitterY: 0.06,
@@ -436,8 +439,13 @@ class TsumGame {
   }
 
   addTimeBonus(seconds) {
-    this.endAt += seconds * 1000;
+    const now = Date.now();
+    const maxEndAt = now + CONFIG.maxRemainingTime * 1000;
+    const nextEndAt = Math.min(maxEndAt, this.endAt + seconds * 1000);
+    const appliedBonusMs = Math.max(0, nextEndAt - this.endAt);
+    this.endAt = nextEndAt;
     this.updateTimer();
+    return appliedBonusMs;
   }
 
   startGame() {
@@ -736,9 +744,11 @@ class TsumGame {
     this.spawnBursts(clearedPieces, type.accent);
     this.showFloatingText(`${this.getFeedbackText(chainLength)} +${earned}`, type.accent);
 
-    if (chainLength >= 6) {
-      this.addTimeBonus(10);
-      this.showFloatingImage("./assets/images/plus10.png");
+    if (!boosterWasActive && chainLength >= 6) {
+      const appliedBonusMs = this.addTimeBonus(CONFIG.timeBonusSeconds);
+      if (appliedBonusMs > 0) {
+        this.showFloatingImage("./assets/images/plus10.png");
+      }
     }
 
     await this.wait(CONFIG.clearDelayMs);
@@ -755,7 +765,7 @@ class TsumGame {
     this.updateScore(earned);
 
     if (!boosterWasActive && chainLength >= 7) {
-      this.activateTemporaryBooster(15);
+      this.activateTemporaryBooster(CONFIG.feverDurationSeconds);
     }
 
     this.collapseBoard();
