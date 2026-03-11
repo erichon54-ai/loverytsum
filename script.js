@@ -2,7 +2,7 @@ const CONFIG = {
   rows: 9,
   cols: 7,
   minChain: 3,
-  roundTime: 60,
+  roundTime: 50,
   maxRemainingTime: 90,
   basePoints: 90,
   chainBonus: 40,
@@ -839,7 +839,7 @@ class TsumGame {
       type.accent
     );
 
-    if (!boosterWasActive && chainLength >= 6) {
+    if (boosterWasActive && chainLength >= 10) {
       const appliedBonusMs = this.addTimeBonus(CONFIG.timeBonusSeconds);
       if (appliedBonusMs > 0) {
         this.showFloatingImage("./assets/images/plus10.png");
