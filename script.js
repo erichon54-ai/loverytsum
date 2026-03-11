@@ -47,7 +47,7 @@ class SoundHooks {
     if (!this.context) {
       this.context = new AudioContextClass();
       this.masterGain = this.context.createGain();
-      this.masterGain.gain.value = 0.12;
+      this.masterGain.gain.value = 0.15;
       this.masterGain.connect(this.context.destination);
     }
 
@@ -91,16 +91,16 @@ class SoundHooks {
     }
 
     if (name === "clear") {
-      this.playTone(now, 430, 0.08, "triangle", 0.11, 350);
-      this.playTone(now + 0.012, 560, 0.09, "sine", 0.075, 460);
-      this.playTone(now + 0.022, 690, 0.07, "triangle", 0.05, 520);
+      this.playTone(now, 320, 0.13, "square", 0.18, 250);
+      this.playTone(now + 0.018, 420, 0.12, "triangle", 0.14, 310);
+      this.playTone(now + 0.04, 560, 0.1, "sine", 0.1, 420);
       return;
     }
 
     if (name === "booster") {
-      this.playTone(now, 540, 0.28, "triangle", 0.065, 1320);
-      this.playTone(now + 0.035, 760, 0.34, "sine", 0.055, 1860);
-      this.playTone(now + 0.09, 1040, 0.42, "sine", 0.04, 2480);
+      this.playTone(now, 460, 0.22, "triangle", 0.11, 880);
+      this.playTone(now + 0.045, 720, 0.34, "sine", 0.1, 1680);
+      this.playTone(now + 0.1, 1020, 0.5, "triangle", 0.085, 2460);
       return;
     }
 

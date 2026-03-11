@@ -164,7 +164,7 @@ body::after {
   position: absolute;
   top: 3.8%;
   right: 8.8%;
-  width: clamp(42px, 8.5vw, 62px);
+  width: clamp(48px, 9.4vw, 70px);
   z-index: 8;
   pointer-events: none;
   animation: heart-item-pulse 1.4s ease-in-out infinite;
@@ -706,6 +706,12 @@ body::after {
     width: clamp(108px, 30vw, 150px);
   }
 
+  .heart-booster-icon {
+    top: max(18px, env(safe-area-inset-top));
+    right: 8.3%;
+    width: clamp(52px, 11vw, 76px);
+  }
+
   .frame-top-row {
     justify-content: flex-start;
     align-items: flex-start;
@@ -742,6 +748,6 @@ body::after {
   .heart-booster-icon {
     top: max(19px, env(safe-area-inset-top));
     right: 8.1%;
-    width: clamp(38px, 8vw, 52px);
+    width: clamp(48px, 11.5vw, 66px);
   }
 }
