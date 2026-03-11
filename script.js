@@ -31,11 +31,17 @@ class SoundHooks {
   constructor() {
     this.context = null;
     this.masterGain = null;
-    this.bgm = new Audio("./assets/audio/bgm.mp3");
-    this.bgm.preload = "auto";
-    this.bgm.loop = true;
-    this.bgm.volume = 0.06;
+    this.normalBgm = new Audio("./assets/audio/bgm.mp3");
+    this.boosterBgm = new Audio("./assets/audio/5-4.mp3");
+    this.activeBgm = this.normalBgm;
+    this.currentBgmMode = "normal";
     this.bgmPrepared = false;
+
+    [this.normalBgm, this.boosterBgm].forEach((audio) => {
+      audio.preload = "auto";
+      audio.loop = true;
+      audio.volume = 0.06;
+    });
   }
 
   unlock() {
@@ -58,7 +64,8 @@ class SoundHooks {
     // Browser autoplay policy requires audio to be prepared from a user gesture,
     // but reloading every pointer event would interrupt the currently playing BGM.
     if (!this.bgmPrepared) {
-      this.bgm.load();
+      this.normalBgm.load();
+      this.boosterBgm.load();
       this.bgmPrepared = true;
     }
   }
@@ -130,21 +137,53 @@ class SoundHooks {
     oscillator.stop(startTime + duration + 0.02);
   }
 
-  startBgm() {
-    this.bgm.currentTime = 0;
-    this.bgm.play().catch(() => {});
+  switchBgm(mode = "normal", restart = false) {
+    const nextBgm = mode === "booster" ? this.boosterBgm : this.normalBgm;
+    const shouldResume = restart || !this.activeBgm.paused;
+
+    if (this.activeBgm !== nextBgm) {
+      this.activeBgm.pause();
+      if (restart) {
+        nextBgm.currentTime = 0;
+      }
+      this.activeBgm = nextBgm;
+      this.currentBgmMode = mode;
+    } else if (restart) {
+      this.activeBgm.currentTime = 0;
+    }
+
+    if (shouldResume) {
+      this.activeBgm.play().catch(() => {});
+    }
+  }
+
+  startBgm(mode = "normal") {
+    this.switchBgm(mode, true);
+  }
+
+  playBoosterBgm() {
+    this.switchBgm("booster");
+  }
+
+  playNormalBgm() {
+    this.switchBgm("normal");
   }
 
   stopBgm(reset = false) {
-    this.bgm.pause();
+    this.normalBgm.pause();
+    this.boosterBgm.pause();
     if (reset) {
-      this.bgm.currentTime = 0;
+      this.normalBgm.currentTime = 0;
+      this.boosterBgm.currentTime = 0;
     }
+    this.activeBgm = this.normalBgm;
+    this.currentBgmMode = "normal";
   }
 }
 
 class TsumGame {
   constructor() {
+    this.boardFrame = document.querySelector(".board-frame");
     this.boardElement = document.getElementById("board");
     this.piecesLayer = document.getElementById("piecesLayer");
     this.particleLayer = document.getElementById("particleLayer");
@@ -307,8 +346,13 @@ class TsumGame {
     this.boosterReducedTypeIndices = shuffled.slice(0, targetPoolSize);
     this.activeTypeIndices = [...this.boosterReducedTypeIndices];
     this.boosterEffectEndsAt = Date.now() + durationSeconds * 1000;
+    this.boardFrame?.classList.add("board-fever");
+    this.boardElement.classList.add("board-fever");
     this.heartBoosterIcon.classList.remove("hidden");
     this.heartBoosterIcon.setAttribute("aria-hidden", "false");
+    if (this.gameActive) {
+      this.audio.playBoosterBgm();
+    }
     this.audio.play("booster");
   }
 
@@ -355,8 +399,13 @@ class TsumGame {
     this.boosterEffectEndsAt = 0;
     this.boosterReducedTypeIndices = [];
     this.activeTypeIndices = [...this.baseRunTypeIndices];
+    this.boardFrame?.classList.remove("board-fever");
+    this.boardElement.classList.remove("board-fever");
     this.heartBoosterIcon.classList.add("hidden");
     this.heartBoosterIcon.setAttribute("aria-hidden", "true");
+    if (this.gameActive) {
+      this.audio.playNormalBgm();
+    }
   }
 
   addTimeBonus(seconds) {
