@@ -645,6 +645,12 @@ class TsumGame {
     this.pieceLookup.clear();
     this.pieceElementLookup.clear();
     this.selectedElementIds.clear();
+    this.piecesLayer.innerHTML = "";
+    this.pendingTrailPointer = null;
+    if (this.trailFrameId !== null) {
+      window.cancelAnimationFrame(this.trailFrameId);
+      this.trailFrameId = null;
+    }
     this.clearParticles();
     this.clearFloatingEffects();
     this.applyRunCharacterPool(runPoolSize);
