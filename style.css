@@ -76,35 +76,11 @@ body::after {
   position: relative;
 }
 
-.title-wrap {
-  width: clamp(96px, 24vw, 150px);
-}
-
-.title-logo {
-  display: block;
-  width: 100%;
-  height: auto;
-  object-fit: contain;
-  filter: drop-shadow(0 6px 14px rgba(88, 55, 142, 0.22));
-}
-
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
-}
-
 .frame-ui {
   position: absolute;
   left: 5.8%;
   right: 5.8%;
-  top: 3.2%;
+  top: 4.2%;
   z-index: 7;
   pointer-events: none;
 }
@@ -113,7 +89,7 @@ body::after {
   display: flex;
   justify-content: flex-start;
   align-items: flex-start;
-  gap: 12px;
+  gap: 0;
 }
 
 .hud {
@@ -124,24 +100,24 @@ body::after {
 
 .status-panel {
   display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 8px;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 0;
   pointer-events: auto;
 }
 
 .hud-stack {
-  flex-direction: column;
-  align-items: stretch;
+  flex-direction: row;
+  align-items: flex-start;
   gap: 8px;
-  margin-top: 2px;
+  margin-top: 0;
 }
 
 .stat-pill {
-  min-width: 74px;
+  min-width: 80px;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(243, 239, 255, 0.92) 100%);
   border-radius: 16px;
-  padding: 7px 10px 6px;
+  padding: 8px 11px 7px;
   text-align: center;
   box-shadow: 0 10px 18px rgba(71, 42, 119, 0.24);
 }
@@ -156,7 +132,7 @@ body::after {
 .stat-pill strong {
   display: block;
   font-family: "Arial Rounded MT Bold", "Trebuchet MS", "Segoe UI", sans-serif;
-  font-size: 1.15rem;
+  font-size: 1.22rem;
   line-height: 1;
 }
 
@@ -613,11 +589,12 @@ body::after {
 
 .overlay-card {
   width: min(100%, 290px);
-  background: rgba(255, 255, 255, 0.94);
+  background: rgba(255, 255, 255, 0.65);
   border-radius: 30px;
   padding: 24px 20px 20px;
   text-align: center;
   box-shadow: 0 16px 32px rgba(80, 53, 77, 0.22);
+  backdrop-filter: blur(10px);
 }
 
 .overlay-kicker {
@@ -914,12 +891,8 @@ body::after {
 
   .frame-ui {
     left: 6%;
-    right: 23%;
-    top: max(18px, env(safe-area-inset-top));
-  }
-
-  .title-wrap {
-    width: clamp(108px, 30vw, 150px);
+    right: 8.5%;
+    top: max(24px, env(safe-area-inset-top));
   }
 
   .heart-booster-icon {
@@ -931,7 +904,7 @@ body::after {
   .frame-top-row {
     justify-content: flex-start;
     align-items: flex-start;
-    gap: 8px;
+    gap: 0;
   }
 
   .hud-stack {
@@ -962,17 +935,13 @@ body::after {
     top: max(12px, env(safe-area-inset-top));
   }
 
-  .title-wrap {
-    width: clamp(100px, 29vw, 132px);
-  }
-
   .stat-pill {
-    min-width: 66px;
-    padding: 6px 8px 6px;
+    min-width: 70px;
+    padding: 7px 9px 6px;
   }
 
   .stat-pill strong {
-    font-size: 1.05rem;
+    font-size: 1.1rem;
   }
 
   .heart-booster-icon {

@@ -81,7 +81,6 @@ class SoundHooks {
   constructor() {
     this.context = null;
     this.masterGain = null;
-    this.homeBgm = new Audio("./assets/audio/home.mp3");
     this.normalBgm = new Audio("./assets/audio/bgm.mp3");
     this.boosterBgm = new Audio("./assets/audio/5-4.mp3");
     this.startSound = new Audio("./assets/audio/play.mp3");
@@ -91,11 +90,10 @@ class SoundHooks {
     this.bgmPrepared = false;
     this.finishSpeechToken = 0;
 
-    [this.homeBgm, this.normalBgm, this.boosterBgm].forEach((audio) => {
+    [this.normalBgm, this.boosterBgm].forEach((audio) => {
       audio.preload = "auto";
       audio.loop = true;
     });
-    this.homeBgm.volume = 0.10;
     this.normalBgm.volume = 0.10;
     this.boosterBgm.volume = 0.10;
 
@@ -125,7 +123,6 @@ class SoundHooks {
     // Browser autoplay policy requires audio to be prepared from a user gesture,
     // but reloading every pointer event would interrupt the currently playing BGM.
     if (!this.bgmPrepared) {
-      this.homeBgm.load();
       this.normalBgm.load();
       this.boosterBgm.load();
       this.startSound.load();
@@ -245,7 +242,6 @@ class SoundHooks {
   }
 
   switchBgm(mode = "normal", restart = false) {
-    this.stopHomeBgm();
     const nextBgm = mode === "booster" ? this.boosterBgm : this.normalBgm;
     const shouldResume = restart || !this.activeBgm.paused;
 
@@ -269,19 +265,6 @@ class SoundHooks {
     this.switchBgm(mode, true);
   }
 
-  playHomeBgm() {
-    this.stopBgm(false);
-    this.homeBgm.currentTime ||= 0;
-    this.homeBgm.play().catch(() => {});
-  }
-
-  stopHomeBgm(reset = false) {
-    this.homeBgm.pause();
-    if (reset) {
-      this.homeBgm.currentTime = 0;
-    }
-  }
-
   playBoosterBgm() {
     this.switchBgm("booster");
   }
@@ -291,7 +274,6 @@ class SoundHooks {
   }
 
   stopBgm(reset = false) {
-    this.stopHomeBgm(reset);
     this.normalBgm.pause();
     this.boosterBgm.pause();
     if (reset) {
@@ -341,7 +323,13 @@ class TsumGame {
     this.pointerActive = false;
     this.pointerId = null;
     this.cellSize = 0;
-    this.boardMetrics = { width: 0, height: 0, offsetX: 0, offsetY: 0 };
+    this.boardMetrics = { width: 0, height: 0, left: 0, top: 0, offsetX: 0, offsetY: 0 };
+    this.pieceLookup = new Map();
+    this.pieceElementLookup = new Map();
+    this.selectedElementIds = new Set();
+    this.trailContext = null;
+    this.pendingTrailPointer = null;
+    this.trailFrameId = null;
     this.nextPieceId = 1;
     this.gameSessionId = 0;
     this.lastTimerWarningSecond = null;
@@ -386,18 +374,8 @@ class TsumGame {
   }
 
   bindEvents() {
-    this.startOverlay.addEventListener("pointerdown", () => {
-      if (this.startOverlay.classList.contains("hidden")) {
-        return;
-      }
-
-      this.audio.unlock();
-      this.audio.playHomeBgm();
-    });
-
     this.startButton.addEventListener("click", () => {
       this.audio.unlock();
-      this.audio.playHomeBgm();
       this.startButton.disabled = true;
       this.audio.playStartCue();
       window.setTimeout(() => this.startGame(), 420);
@@ -664,6 +642,9 @@ class TsumGame {
     this.animationLock = false;
     this.finishSequenceActive = false;
     this.lastTimerWarningSecond = null;
+    this.pieceLookup.clear();
+    this.pieceElementLookup.clear();
+    this.selectedElementIds.clear();
     this.clearParticles();
     this.clearFloatingEffects();
     this.applyRunCharacterPool(runPoolSize);
@@ -681,7 +662,7 @@ class TsumGame {
   createPiece(row, col, forcedType = null, options = {}) {
     const typeIndex = forcedType ?? this.getRandomActiveTypeIndex();
     const visual = this.createVisualProfile(row, col);
-    return {
+    const piece = {
       id: this.nextPieceId++,
       typeIndex,
       row,
@@ -694,6 +675,8 @@ class TsumGame {
       bobDelay: visual.bobDelay,
       bobOffset: visual.bobOffset,
     };
+    this.pieceLookup.set(piece.id, piece);
+    return piece;
   }
 
   createVisualProfile(row, col) {
@@ -799,11 +782,6 @@ class TsumGame {
     this.startOverlay.classList.toggle("hidden", !show);
     this.startOverlay.setAttribute("aria-hidden", String(!show));
     this.syncHomeVideoPlayback(show);
-    if (show) {
-      this.audio.playHomeBgm();
-    } else {
-      this.audio.stopHomeBgm(true);
-    }
   }
 
   setBoardMessage(text, show) {
@@ -916,7 +894,6 @@ class TsumGame {
     this.selectedType = piece.typeIndex;
     this.refreshSelectionState();
     this.audio.play("select");
-    this.drawTrail();
   }
 
   extendChain(piece) {
@@ -995,6 +972,7 @@ class TsumGame {
     }
 
     clearedPieces.forEach((piece) => {
+      this.pieceLookup.delete(piece.id);
       this.board[piece.row][piece.col] = null;
     });
 
@@ -1026,21 +1004,27 @@ class TsumGame {
     this.selectedChain = [];
     this.selectedType = null;
     this.refreshSelectionState();
-    this.drawTrail();
   }
 
   refreshSelectionState() {
-    this.piecesLayer.querySelectorAll(".piece.selected").forEach((element) => {
+    this.selectedElementIds.forEach((pieceId) => {
+      const element = this.pieceElementLookup.get(pieceId);
+      if (!element) {
+        return;
+      }
       element.classList.remove("selected");
       element.style.zIndex = String(2 + Number(element.dataset.row || 0));
     });
 
+    this.selectedElementIds.clear();
     this.selectedChain.forEach((piece, index) => {
-      const element = this.piecesLayer.querySelector(`[data-piece-id="${piece.id}"]`);
-      if (element) {
-        element.classList.add("selected");
-        element.style.zIndex = String(8 + index);
+      const element = this.pieceElementLookup.get(piece.id);
+      if (!element) {
+        return;
       }
+      element.classList.add("selected");
+      element.style.zIndex = String(8 + index);
+      this.selectedElementIds.add(piece.id);
     });
 
     this.drawTrail();
@@ -1048,7 +1032,7 @@ class TsumGame {
 
   popPieces(pieces) {
     pieces.forEach((piece) => {
-      const element = this.piecesLayer.querySelector(`[data-piece-id="${piece.id}"]`);
+      const element = this.pieceElementLookup.get(piece.id);
       if (element) {
         element.classList.add("popping");
       }
@@ -1202,9 +1186,7 @@ class TsumGame {
   }
 
   renderBoard(skipIntro = false) {
-    const existingElements = new Map(
-      [...this.piecesLayer.querySelectorAll(".piece")].map((element) => [Number(element.dataset.pieceId), element])
-    );
+    const existingElements = new Map(this.pieceElementLookup);
     const fragment = document.createDocumentFragment();
     const activeIds = new Set();
 
@@ -1228,7 +1210,9 @@ class TsumGame {
     }
 
     existingElements.forEach((element, pieceId) => {
-      if (!activeIds.has(pieceId)) {
+        if (!activeIds.has(pieceId)) {
+        this.pieceElementLookup.delete(pieceId);
+        this.selectedElementIds.delete(pieceId);
         element.remove();
       }
     });
@@ -1260,6 +1244,7 @@ class TsumGame {
     button.style.setProperty("--bob-delay", `${piece.bobDelay}s`);
     button.style.setProperty("--bob-offset", `${piece.bobOffset}px`);
     this.syncPieceElementAppearance(button, piece);
+    this.pieceElementLookup.set(piece.id, button);
 
     return button;
   }
@@ -1336,6 +1321,8 @@ class TsumGame {
     this.boardMetrics = {
       width: rect.width,
       height: rect.height,
+      left: rect.left,
+      top: rect.top,
       offsetX: (rect.width - totalWidth) / 2,
       offsetY: (rect.height - totalHeight) / 2,
     };
@@ -1355,15 +1342,34 @@ class TsumGame {
     this.trailCanvas.height = Math.floor(rect.height * ratio);
     this.trailCanvas.style.width = `${rect.width}px`;
     this.trailCanvas.style.height = `${rect.height}px`;
-    const context = this.trailCanvas.getContext("2d");
-    if (context) {
-      context.setTransform(ratio, 0, 0, ratio, 0, 0);
+    this.trailContext = this.trailCanvas.getContext("2d");
+    if (this.trailContext) {
+      this.trailContext.setTransform(ratio, 0, 0, ratio, 0, 0);
     }
     this.drawTrail();
   }
 
   drawTrail(pointerX = null, pointerY = null) {
-    const context = this.trailCanvas.getContext("2d");
+    this.pendingTrailPointer =
+      pointerX !== null && pointerY !== null
+        ? {
+            x: pointerX - this.boardMetrics.left,
+            y: pointerY - this.boardMetrics.top,
+          }
+        : null;
+
+    if (this.trailFrameId !== null) {
+      return;
+    }
+
+    this.trailFrameId = window.requestAnimationFrame(() => {
+      this.trailFrameId = null;
+      this.drawTrailNow();
+    });
+  }
+
+  drawTrailNow() {
+    const context = this.trailContext;
     if (!context) {
       return;
     }
@@ -1375,9 +1381,8 @@ class TsumGame {
 
     const activeType = CHARACTER_TYPES[this.selectedType];
     const centers = this.selectedChain.map((piece) => this.getPieceCenter(piece));
-    if (pointerX !== null && pointerY !== null) {
-      const rect = this.boardElement.getBoundingClientRect();
-      centers.push({ x: pointerX - rect.left, y: pointerY - rect.top });
+    if (this.pendingTrailPointer) {
+      centers.push(this.pendingTrailPointer);
     }
 
     context.save();
@@ -1403,7 +1408,7 @@ class TsumGame {
     context.lineWidth = Math.max(4, this.cellSize * 0.08);
     context.stroke();
 
-    centers.slice(0, pointerX === null ? centers.length : -1).forEach((point) => {
+    centers.slice(0, this.pendingTrailPointer ? -1 : centers.length).forEach((point) => {
       context.beginPath();
       context.fillStyle = activeType?.accent || "white";
       context.arc(point.x, point.y, Math.max(6, this.cellSize * 0.13), 0, Math.PI * 2);
@@ -1435,19 +1440,11 @@ class TsumGame {
       return null;
     }
 
-    return this.findPieceById(Number(pieceElement.dataset.pieceId));
+    return this.pieceLookup.get(Number(pieceElement.dataset.pieceId)) ?? null;
   }
 
   findPieceById(pieceId) {
-    for (let row = 0; row < CONFIG.rows; row += 1) {
-      for (let col = 0; col < CONFIG.cols; col += 1) {
-        const piece = this.board[row][col];
-        if (piece && piece.id === pieceId) {
-          return piece;
-        }
-      }
-    }
-    return null;
+    return this.pieceLookup.get(pieceId) ?? null;
   }
 
   isAdjacent(a, b) {
@@ -1457,7 +1454,7 @@ class TsumGame {
   }
 
   bumpInvalidPiece(pieceId) {
-    const element = this.piecesLayer.querySelector(`[data-piece-id="${pieceId}"]`);
+    const element = this.pieceElementLookup.get(pieceId);
     if (!element) {
       return;
     }
