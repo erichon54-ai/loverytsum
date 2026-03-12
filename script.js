@@ -81,17 +81,28 @@ class SoundHooks {
   constructor() {
     this.context = null;
     this.masterGain = null;
+    this.homeBgm = new Audio("./assets/audio/home.mp3");
     this.normalBgm = new Audio("./assets/audio/bgm.mp3");
     this.boosterBgm = new Audio("./assets/audio/5-4.mp3");
+    this.startSound = new Audio("./assets/audio/play.mp3");
+    this.clearSound = new Audio("./assets/audio/get.mp3");
     this.activeBgm = this.normalBgm;
     this.currentBgmMode = "normal";
     this.bgmPrepared = false;
+    this.finishSpeechToken = 0;
 
-    [this.normalBgm, this.boosterBgm].forEach((audio) => {
+    [this.homeBgm, this.normalBgm, this.boosterBgm].forEach((audio) => {
       audio.preload = "auto";
       audio.loop = true;
-      audio.volume = 0.06;
     });
+    this.homeBgm.volume = 0.10;
+    this.normalBgm.volume = 0.10;
+    this.boosterBgm.volume = 0.10;
+
+    this.startSound.preload = "auto";
+    this.startSound.volume = 0.5;
+    this.clearSound.preload = "auto";
+    this.clearSound.volume = 0.58;
   }
 
   unlock() {
@@ -114,13 +125,21 @@ class SoundHooks {
     // Browser autoplay policy requires audio to be prepared from a user gesture,
     // but reloading every pointer event would interrupt the currently playing BGM.
     if (!this.bgmPrepared) {
+      this.homeBgm.load();
       this.normalBgm.load();
       this.boosterBgm.load();
+      this.startSound.load();
+      this.clearSound.load();
       this.bgmPrepared = true;
     }
   }
 
   play(name) {
+    if (name === "clear") {
+      this.playOneShot(this.clearSound);
+      return;
+    }
+
     if (!this.context || !this.masterGain) {
       return;
     }
@@ -147,14 +166,6 @@ class SoundHooks {
       return;
     }
 
-    if (name === "clear") {
-      this.playTone(now, 620, 0.12, "triangle", 0.18, 760);
-      this.playTone(now + 0.024, 860, 0.14, "sine", 0.16, 1120);
-      this.playTone(now + 0.052, 1180, 0.12, "sine", 0.12, 1460);
-      this.playTone(now + 0.072, 920, 0.16, "triangle", 0.08, 720);
-      return;
-    }
-
     if (name === "booster") {
       this.playTone(now, 460, 0.24, "triangle", 0.18, 980);
       this.playTone(now + 0.04, 760, 0.38, "sine", 0.16, 1820);
@@ -173,6 +184,44 @@ class SoundHooks {
       this.playTone(now + 0.09, 1120, 0.14, "triangle", 0.12, 1020);
       this.playTone(now + 0.2, 920, 0.12, "sine", 0.08, 860);
       return;
+    }
+
+  }
+
+  stopFinishCue() {
+    this.finishSpeechToken += 1;
+  }
+
+  playFinishCue() {
+    const finishDelayMs = 900;
+    const activeToken = this.finishSpeechToken + 1;
+    this.finishSpeechToken = activeToken;
+
+    return new Promise((resolve) => {
+      window.setTimeout(() => {
+        if (this.finishSpeechToken !== activeToken) {
+          return;
+        }
+        resolve();
+      }, finishDelayMs);
+    });
+  }
+
+  playStartCue() {
+    this.playOneShot(this.startSound);
+  }
+
+  playOneShot(sourceAudio) {
+    try {
+      const clip = sourceAudio.cloneNode();
+      clip.volume = sourceAudio.volume;
+      clip.currentTime = 0;
+      const playPromise = clip.play();
+      if (playPromise?.catch) {
+        playPromise.catch(() => {});
+      }
+    } catch {
+      // Ignore one-shot playback failures on restricted browsers.
     }
   }
 
@@ -196,6 +245,7 @@ class SoundHooks {
   }
 
   switchBgm(mode = "normal", restart = false) {
+    this.stopHomeBgm();
     const nextBgm = mode === "booster" ? this.boosterBgm : this.normalBgm;
     const shouldResume = restart || !this.activeBgm.paused;
 
@@ -219,6 +269,19 @@ class SoundHooks {
     this.switchBgm(mode, true);
   }
 
+  playHomeBgm() {
+    this.stopBgm(false);
+    this.homeBgm.currentTime ||= 0;
+    this.homeBgm.play().catch(() => {});
+  }
+
+  stopHomeBgm(reset = false) {
+    this.homeBgm.pause();
+    if (reset) {
+      this.homeBgm.currentTime = 0;
+    }
+  }
+
   playBoosterBgm() {
     this.switchBgm("booster");
   }
@@ -228,6 +291,7 @@ class SoundHooks {
   }
 
   stopBgm(reset = false) {
+    this.stopHomeBgm(reset);
     this.normalBgm.pause();
     this.boosterBgm.pause();
     if (reset) {
@@ -250,6 +314,7 @@ class TsumGame {
     this.floatingTextLayer = document.getElementById("floatingText");
     this.boardMessage = document.getElementById("boardMessage");
     this.startOverlay = document.getElementById("startOverlay");
+    this.homeVideo = document.getElementById("homeVideo");
     this.scoreElement = document.getElementById("score");
     this.timerElement = document.getElementById("timer");
     this.finalScoreElement = document.getElementById("finalScore");
@@ -269,6 +334,7 @@ class TsumGame {
     this.timerInterval = null;
     this.endAt = 0;
     this.score = 0;
+    this.finishSequenceActive = false;
     this.board = [];
     this.selectedChain = [];
     this.selectedType = null;
@@ -320,9 +386,21 @@ class TsumGame {
   }
 
   bindEvents() {
+    this.startOverlay.addEventListener("pointerdown", () => {
+      if (this.startOverlay.classList.contains("hidden")) {
+        return;
+      }
+
+      this.audio.unlock();
+      this.audio.playHomeBgm();
+    });
+
     this.startButton.addEventListener("click", () => {
       this.audio.unlock();
-      this.startGame();
+      this.audio.playHomeBgm();
+      this.startButton.disabled = true;
+      this.audio.playStartCue();
+      window.setTimeout(() => this.startGame(), 420);
     });
 
     this.overlayRestartButton.addEventListener("click", () => {
@@ -389,10 +467,29 @@ class TsumGame {
     this.timerElement.textContent = String(CONFIG.roundTime);
     this.timerElement.classList.remove("timer-warning");
     this.finalScoreElement.textContent = "0";
+    this.finishSequenceActive = false;
     this.renderRanking();
     this.toggleStartOverlay(true);
     this.toggleOverlay(false);
     this.drawTrail();
+  }
+
+  syncHomeVideoPlayback(show) {
+    if (!this.homeVideo) {
+      return;
+    }
+
+    if (!show) {
+      this.homeVideo.pause();
+      this.homeVideo.currentTime = 0;
+      return;
+    }
+
+    this.homeVideo.loop = true;
+    this.homeVideo.playsInline = true;
+    this.homeVideo.volume = 0;
+    this.homeVideo.muted = true;
+    this.homeVideo.play().catch(() => {});
   }
 
   getDefaultActiveCharacterPoolSize() {
@@ -516,9 +613,14 @@ class TsumGame {
 
   startGame() {
     if (!this.imageLoaded || this.gameActive) {
+      if (this.imageLoaded) {
+        this.startButton.disabled = false;
+      }
       return;
     }
 
+    this.finishSequenceActive = false;
+    this.audio.stopFinishCue();
     this.initializeGameState(this.getDefaultActiveCharacterPoolSize());
     this.gameActive = true;
     this.startButton.disabled = true;
@@ -534,6 +636,8 @@ class TsumGame {
       return;
     }
 
+    this.finishSequenceActive = false;
+    this.audio.stopFinishCue();
     this.audio.stopBgm(true);
     this.stopTimer();
     this.endPointerDrag();
@@ -558,6 +662,7 @@ class TsumGame {
     this.selectedType = null;
     this.pointerActive = false;
     this.animationLock = false;
+    this.finishSequenceActive = false;
     this.lastTimerWarningSecond = null;
     this.clearParticles();
     this.clearFloatingEffects();
@@ -654,23 +759,33 @@ class TsumGame {
     }
   }
 
-  finishGame() {
-    if (!this.gameActive) {
+  async finishGame() {
+    if (!this.gameActive || this.finishSequenceActive) {
       return;
     }
 
+    this.finishSequenceActive = true;
     this.stopTimer();
     this.audio.stopBgm(true);
     this.endPointerDrag();
     this.gameActive = false;
     this.startButton.disabled = false;
     this.toggleStartOverlay(false);
+    this.toggleOverlay(false);
     this.clearTemporaryBoosterEffect();
+    this.setBoardMessage("Finish!", true);
+    await this.audio.playFinishCue();
+
+    if (!this.finishSequenceActive) {
+      return;
+    }
+
     const highScores = this.rankingStore.updateTop3(this.score);
     this.finalScoreElement.textContent = this.score.toLocaleString("ja-JP");
     this.renderRanking(highScores);
     this.toggleOverlay(true);
     this.setBoardMessage("", false);
+    this.finishSequenceActive = false;
     return;
     this.setBoardMessage("LOVERY をもう一回つなごう", true);
   }
@@ -683,6 +798,12 @@ class TsumGame {
   toggleStartOverlay(show) {
     this.startOverlay.classList.toggle("hidden", !show);
     this.startOverlay.setAttribute("aria-hidden", String(!show));
+    this.syncHomeVideoPlayback(show);
+    if (show) {
+      this.audio.playHomeBgm();
+    } else {
+      this.audio.stopHomeBgm(true);
+    }
   }
 
   setBoardMessage(text, show) {

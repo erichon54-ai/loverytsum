@@ -46,10 +46,19 @@
             </div>
 
             <div id="startOverlay" class="start-overlay" aria-hidden="false">
-              <div class="start-card">
-                <p class="start-kicker">READY?</p>
-                <button id="startButton" class="ui-button primary start-button" type="button">Start</button>
-              </div>
+              <video
+                id="homeVideo"
+                class="home-video"
+                src="./assets/video/home.mp4"
+                playsinline
+                webkit-playsinline
+                loop
+                preload="auto"
+              ></video>
+              <div class="start-overlay-shade" aria-hidden="true"></div>
+              <button id="startButton" class="start-button-image" type="button" aria-label="Play">
+                <img src="./assets/images/play.png" alt="Play" draggable="false">
+              </button>
             </div>
           </div>
 
