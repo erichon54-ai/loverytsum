@@ -160,6 +160,12 @@ body::after {
   line-height: 1;
 }
 
+.stat-pill strong.timer-warning {
+  color: #ff3f63;
+  text-shadow: 0 0 10px rgba(255, 96, 135, 0.34);
+  animation: timer-warning-pulse 0.72s ease-in-out infinite;
+}
+
 .heart-booster-icon {
   position: absolute;
   top: 3.8%;
@@ -759,6 +765,18 @@ body::after {
   }
   70% {
     transform: translate(calc(var(--x, 0px) + 2px), var(--y, 0px)) scale(1.02);
+  }
+}
+
+@keyframes timer-warning-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  45% {
+    transform: scale(1.08);
+    opacity: 0.9;
   }
 }
 

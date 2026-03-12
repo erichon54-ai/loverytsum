@@ -3,7 +3,7 @@ const CONFIG = {
   cols: 7,
   minChain: 3,
   roundTime: 50,
-  maxRemainingTime: 90,
+  maxRemainingTime: 40,
   basePoints: 90,
   chainBonus: 40,
   dropDelayMs: 240,
@@ -165,6 +165,14 @@ class SoundHooks {
     if (name === "drop") {
       this.playTone(now, 410, 0.09, "triangle", 0.05, 310);
       this.playTone(now + 0.03, 520, 0.08, "sine", 0.04, 380);
+      return;
+    }
+
+    if (name === "warning") {
+      this.playTone(now, 1320, 0.11, "square", 0.16, 1240);
+      this.playTone(now + 0.09, 1120, 0.14, "triangle", 0.12, 1020);
+      this.playTone(now + 0.2, 920, 0.12, "sine", 0.08, 860);
+      return;
     }
   }
 
@@ -270,6 +278,7 @@ class TsumGame {
     this.boardMetrics = { width: 0, height: 0, offsetX: 0, offsetY: 0 };
     this.nextPieceId = 1;
     this.gameSessionId = 0;
+    this.lastTimerWarningSecond = null;
     this.totalCharacterTypeCount = CHARACTER_TYPES.length;
     this.activeCharacterPoolSize = this.getDefaultActiveCharacterPoolSize();
     this.baseRunTypeIndices = this.buildActiveTypePool(this.activeCharacterPoolSize);
@@ -378,6 +387,7 @@ class TsumGame {
   resetUI() {
     this.scoreElement.textContent = "0";
     this.timerElement.textContent = String(CONFIG.roundTime);
+    this.timerElement.classList.remove("timer-warning");
     this.finalScoreElement.textContent = "0";
     this.renderRanking();
     this.toggleStartOverlay(true);
@@ -434,8 +444,8 @@ class TsumGame {
     this.boosterEffectEndsAt = Date.now() + durationSeconds * 1000;
     this.boardFrame?.classList.add("board-fever");
     this.boardElement.classList.add("board-fever");
-    this.heartBoosterIcon.classList.remove("hidden");
-    this.heartBoosterIcon.setAttribute("aria-hidden", "false");
+    this.heartBoosterIcon?.classList.remove("hidden");
+    this.heartBoosterIcon?.setAttribute("aria-hidden", "false");
     if (this.gameActive) {
       this.audio.playBoosterBgm();
     }
@@ -487,8 +497,8 @@ class TsumGame {
     this.activeTypeIndices = [...this.baseRunTypeIndices];
     this.boardFrame?.classList.remove("board-fever");
     this.boardElement.classList.remove("board-fever");
-    this.heartBoosterIcon.classList.add("hidden");
-    this.heartBoosterIcon.setAttribute("aria-hidden", "true");
+    this.heartBoosterIcon?.classList.add("hidden");
+    this.heartBoosterIcon?.setAttribute("aria-hidden", "true");
     if (this.gameActive) {
       this.audio.playNormalBgm();
     }
@@ -496,7 +506,7 @@ class TsumGame {
 
   addTimeBonus(seconds) {
     const now = Date.now();
-    const maxEndAt = now + CONFIG.maxRemainingTime * 1000;
+    const maxEndAt = Math.max(this.endAt, now + CONFIG.maxRemainingTime * 1000);
     const nextEndAt = Math.min(maxEndAt, this.endAt + seconds * 1000);
     const appliedBonusMs = Math.max(0, nextEndAt - this.endAt);
     this.endAt = nextEndAt;
@@ -548,6 +558,7 @@ class TsumGame {
     this.selectedType = null;
     this.pointerActive = false;
     this.animationLock = false;
+    this.lastTimerWarningSecond = null;
     this.clearParticles();
     this.clearFloatingEffects();
     this.applyRunCharacterPool(runPoolSize);
@@ -622,6 +633,16 @@ class TsumGame {
     const remainingMs = Math.max(0, this.endAt - Date.now());
     const remainingSeconds = Math.ceil(remainingMs / 1000);
     this.timerElement.textContent = String(remainingSeconds);
+    const isWarningTime = remainingSeconds <= 5 && remainingSeconds > 0;
+    this.timerElement.classList.toggle("timer-warning", isWarningTime);
+
+    if (isWarningTime && remainingSeconds !== this.lastTimerWarningSecond) {
+      this.audio.play("warning");
+      this.lastTimerWarningSecond = remainingSeconds;
+    } else if (!isWarningTime) {
+      this.lastTimerWarningSecond = null;
+    }
+
     this.updateTemporaryBoosterEffect();
 
     if (remainingMs <= 0) {
@@ -839,7 +860,7 @@ class TsumGame {
       type.accent
     );
 
-    if (boosterWasActive && chainLength >= 10) {
+    if (!boosterWasActive && chainLength >= 8) {
       const appliedBonusMs = this.addTimeBonus(CONFIG.timeBonusSeconds);
       if (appliedBonusMs > 0) {
         this.showFloatingImage("./assets/images/plus10.png");
